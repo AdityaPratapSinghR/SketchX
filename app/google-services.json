@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "738145986503",
+    "project_id": "sketchx-image-to-sketch",
+    "storage_bucket": "sketchx-image-to-sketch.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:738145986503:android:779ee5afeead87aaf19be2",
+        "android_client_info": {
+          "package_name": "com.infinityplus.photo.pencil.sketch.maker.image.sketch.phototosketch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAk5LG-d-nyYF9fBUxi79u73yoLLMQfAuI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

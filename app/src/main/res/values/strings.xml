@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">SketchX</string>
+    <string name="settings">Settings</string>
+    <string name="night_mode">Night Mode</string>
+    <string name="about">About</string>
+    <string name="rate_us">Rate Us</string>
+    <string name="our_apps">Our Apps</string>
+    <string name="send_feedback">Send Feedback</string>
+    <string name="privacy_policy">Privacy Policy</string>
+    <string name="no_app_found">No Apps Found to Send Email</string>
+    <string name="error_loading">Error loading!</string>
+    <string name="error_occurred_try_again">Error Occurred! Try Again</string>
+</resources>

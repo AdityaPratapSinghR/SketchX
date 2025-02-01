@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:backgroundTint="@color/background">
+<androidx.constraintlayout.widget.ConstraintLayout
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/top_tool_save"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageView
+            android:id="@+id/back_save"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="8dp"
+            android:layout_margin="5dp"
+            android:src="@drawable/arrow_back"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save"
+            android:textColor="@color/text"
+            android:textSize="24sp"
+            app:layout_constraintStart_toEndOf="@id/back_save"
+            app:layout_constraintTop_toTopOf="@id/back_save"
+            app:layout_constraintBottom_toBottomOf="@id/back_save"/>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+    <androidx.cardview.widget.CardView
+        app:layout_constraintTop_toBottomOf="@id/top_tool_save"
+        android:id="@+id/finalImageViewContainer"
+        android:layout_width="match_parent"
+        android:layout_height="500dp"
+        android:layout_weight="1"
+        android:scaleType="fitCenter"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        app:cardCornerRadius="10dp">
+
+
+
+
+    <ImageView
+        app:layout_constraintTop_toBottomOf="@id/top_tool_save"
+        android:id="@+id/finalImageView"
+        android:layout_width="match_parent"
+        android:layout_height="500dp"
+        android:layout_weight="1" />
+
+    </androidx.cardview.widget.CardView>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonSave"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:icon="@drawable/download"
+        app:iconTint="@color/text"
+        app:iconGravity="textTop"
+        android:text="Save"
+        android:textColor="@color/text"
+        app:layout_constraintTop_toBottomOf="@id/finalImageViewContainer"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/buttonShare"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/buttonShare"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:icon="@drawable/share"
+        app:iconTint="@color/text"
+        app:iconGravity="textTop"
+        android:text="Share"
+        android:textColor="@color/text"
+        app:layout_constraintTop_toBottomOf="@id/finalImageViewContainer"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/buttonSave"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
