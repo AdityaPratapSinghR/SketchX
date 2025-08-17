@@ -11,6 +11,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.infinityplus.photo.pencil.sketch.maker.image.sketch.phototosketch.R;
 import com.infinityplus.photo.pencil.sketch.maker.image.sketch.phototosketch.model.ConversionItem;
 
@@ -43,7 +45,8 @@ public class ConversionAdapter extends RecyclerView.Adapter<ConversionAdapter.Co
     public void onBindViewHolder(@NonNull ConversionViewHolder holder, int position) {
         final ConversionItem item = dataList.get(position);
       //  holder.conversionName.setText(item.getName());
-        holder.conversionImage.setImageResource(item.getPreviewRes());
+        Glide.with(holder.itemView).load(item.getPreviewRes()).apply(new RequestOptions().override(400,400)).into(holder.conversionImage);
+       // holder.conversionImage.setImageResource(item.getPreviewRes());
         // Show or hide checkmark based on whether this position is the selected item
         if (position == currentPosition) {
             holder.checked.setVisibility(View.VISIBLE);

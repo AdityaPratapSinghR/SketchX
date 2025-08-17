@@ -14,7 +14,9 @@ public class ToDo {
     Add Firebase --- Done
     Settings, privacy policy, rate us, about us --- Done
     Extensive Testing --- Done
-    Launch in closed testing ---
+    Launch in closed testing --- Done
+    Launch in open testing --- Done
+    Fix image rotation --- Done
 
 
     Fix Delay when switching from save activity ---

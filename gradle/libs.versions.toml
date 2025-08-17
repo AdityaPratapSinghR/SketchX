@@ -1,5 +1,5 @@
 [versions]
-agp = "8.4.0-alpha02"
+agp = "8.4.1"
 junit = "4.13.2"
 junitVersion = "1.2.1"
 espressoCore = "3.6.1"
@@ -10,7 +10,7 @@ constraintlayout = "2.2.0"
 googleServices = "4.4.2"
 firebaseAnalytics = "22.2.0"
 firebaseCrashlytics = "19.4.0"
-gradle = "8.1.0"
+gradle = "8.4.1"
 firebaseCrashlyticsGradle = "3.0.2"
 
 [libraries]

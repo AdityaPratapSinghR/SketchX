@@ -12,9 +12,13 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.request.RequestOptions;
@@ -31,11 +35,18 @@ public class SaveActivity extends AppCompatActivity {
     private ImageView finalImageView;
   //  private Bitmap finalBitmap;
     private String imageUri;
+    String shareImage;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_save);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.save), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
 
         finalImageView = findViewById(R.id.finalImageView);
         MaterialButton buttonShare = findViewById(R.id.buttonShare);
@@ -55,6 +66,7 @@ public class SaveActivity extends AppCompatActivity {
 
         // 1) Get final image from the Intent
         imageUri = getIntent().getStringExtra("FINAL_IMAGE");
+        shareImage = imageUri;
       //  byte[] imageBytes = getIntent().getByteArrayExtra("FINAL_IMAGE");
         if (imageUri != null) {
            // finalBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
@@ -67,7 +79,7 @@ public class SaveActivity extends AppCompatActivity {
         }
 
         // 2) Handle Share
-        buttonShare.setOnClickListener(v -> shareImage());
+        buttonShare.setOnClickListener(v -> shareImage(shareImage));
 
         // 3) Handle Save
         buttonSave.setOnClickListener(v -> saveImageFromUri(Uri.parse(imageUri)));
@@ -86,38 +98,54 @@ public class SaveActivity extends AppCompatActivity {
     /**
      * Share the image using an ACTION_SEND intent
      */
-    private void shareImage() {
-        if (imageUri == null) return;
-
-//        try {
-            // Convert finalBitmap to a file in cache
-//            File cachePath = new File(getCacheDir(), "images");
-//            cachePath.mkdirs(); // ensure the folder exists
-//            File file = new File(cachePath, "share_image.jpg");
-//            FileOutputStream fos = new FileOutputStream(file);
-//            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-//            fos.close();
+//    private void shareImage(String shareImage) {
+//        if (imageUri == null) return;
 //
-//            // Get the Uri for the file using FileProvider
-//            Uri contentUri = FileProvider.getUriForFile(
-//                    this,
-//                    getPackageName() + ".provider", // must match provider in Manifest
-//                    file
-//            );
+////        try {
+//            // Convert finalBitmap to a file in cache
+////            File cachePath = new File(getCacheDir(), "images");
+////            cachePath.mkdirs(); // ensure the folder exists
+////            File file = new File(cachePath, "share_image.jpg");
+////            FileOutputStream fos = new FileOutputStream(file);
+////            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+////            fos.close();
+////
+////            // Get the Uri for the file using FileProvider
+////            Uri contentUri = FileProvider.getUriForFile(
+////                    this,
+////                    getPackageName() + ".provider", // must match provider in Manifest
+////                    file
+////            );
+//
+//            // Create share intent
+//            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+//            shareIntent.setType("image/*");
+//            shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse(shareImage));
+//            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+//
+//            // Start share chooser
+//            startActivity(Intent.createChooser(shareIntent, "Share Image"));
+//
+////        } catch (IOException e) {
+////            e.printStackTrace();
+////            Toast.makeText(this, "Error sharing image", Toast.LENGTH_SHORT).show();
+////        }
+//    }
+    private void shareImage(String shareImage) {
+        if (shareImage == null) {
+            Toast.makeText(this, "Nothing to share", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Uri uri = Uri.parse(shareImage);
 
-            // Create share intent
-            Intent shareIntent = new Intent(Intent.ACTION_SEND);
-            shareIntent.setType("image/*");
-            shareIntent.putExtra(Intent.EXTRA_STREAM, imageUri);
-            shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.setType("image/jpeg");
+        shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+        shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        // Some targets rely on ClipData to receive a persisted grant
+        shareIntent.setClipData(android.content.ClipData.newRawUri("Image", uri));
 
-            // Start share chooser
-            startActivity(Intent.createChooser(shareIntent, "Share Image"));
-
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            Toast.makeText(this, "Error sharing image", Toast.LENGTH_SHORT).show();
-//        }
+        startActivity(Intent.createChooser(shareIntent, "Share Image"));
     }
 
 //    @Override
@@ -127,136 +155,222 @@ public class SaveActivity extends AppCompatActivity {
 //        super.onDestroy();
 //    }
 
-    private void saveImageFromUri(Uri sourceUri) {
-        if (sourceUri == null) {
-            runOnUiThread(() ->
-                    Toast.makeText(SaveActivity.this, "Source Uri is null", Toast.LENGTH_SHORT).show()
-            );
-            return;
-        }
+//    private void saveImageFromUri(Uri sourceUri) {
+//        if (sourceUri == null) {
+//            runOnUiThread(() ->
+//                    Toast.makeText(SaveActivity.this, "Source Uri is null", Toast.LENGTH_SHORT).show()
+//            );
+//            return;
+//        }
+//
+//        // Android 10 and above
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            ContentValues values = new ContentValues();
+//            values.put(MediaStore.Images.Media.DISPLAY_NAME,
+//                    "temp_image_" + System.currentTimeMillis() + ".jpg");
+//            values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+//            values.put(MediaStore.Images.Media.RELATIVE_PATH,
+//                    Environment.DIRECTORY_PICTURES + "/SketchX");
+//
+//            Uri uri = getContentResolver().insert(
+//                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+//
+//            if (uri != null) {
+//                try (OutputStream outputStream = getContentResolver().openOutputStream(uri);
+//                     InputStream inputStream  = getContentResolver().openInputStream(sourceUri)) {
+//
+//                    if (inputStream == null) {
+//                        throw new IOException("Failed to open input stream from sourceUri");
+//                    }
+//
+//                    byte[] buffer = new byte[8192];
+//                    int len;
+//                    while ((len = inputStream.read(buffer)) != -1) {
+//                        outputStream.write(buffer, 0, len);
+//                    }
+//                    outputStream.flush();
+//
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            Toast.makeText(
+//                                    SaveActivity.this,
+//                                    "Image saved to gallery!",
+//                                    Toast.LENGTH_SHORT
+//                            ).show();
+//
+//                            File cacheDir = new File(getCacheDir(), "images");
+//                            File[] files = cacheDir.listFiles();
+//                            for (File f : files) {
+//                                // maybe if older than X time, delete
+//                                if(f.getName().startsWith("temp_image_")) {
+//                                    f.delete();
+//                                }
+//                            }
+//
+//                        }
+//                    });
+//
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                    runOnUiThread(() -> Toast.makeText(
+//                            SaveActivity.this,
+//                            "Error saving image: " + e.getMessage(),
+//                            Toast.LENGTH_SHORT
+//                    ).show());
+//                }
+//            } else {
+//                runOnUiThread(() -> Toast.makeText(
+//                        SaveActivity.this,
+//                        "Failed to create media store entry.",
+//                        Toast.LENGTH_SHORT
+//                ).show());
+//            }
+//
+//        } else {
+//            // Android 9 (Pie) and below: Save to external storage public directory
+//            String directoryPath = Environment.getExternalStoragePublicDirectory(
+//                    Environment.DIRECTORY_PICTURES) + "/SketchX";
+//            File directory = new File(directoryPath);
+//            if (!directory.exists()) {
+//                directory.mkdirs();
+//            }
+//
+//            String fileName = "temp_image_" + System.currentTimeMillis() + ".jpg";
+//            File file = new File(directory, fileName);
+//
+//            try (FileOutputStream outputStream = new FileOutputStream(file);
+//                 InputStream inputStream = getContentResolver().openInputStream(sourceUri)) {
+//
+//                if (inputStream == null) {
+//                    throw new IOException("Failed to open input stream from sourceUri");
+//                }
+//
+//                byte[] buffer = new byte[8192];
+//                int len;
+//                while ((len = inputStream.read(buffer)) != -1) {
+//                    outputStream.write(buffer, 0, len);
+//                }
+//                outputStream.flush();
+//
+//                runOnUiThread(() -> {
+//                    Toast.makeText(SaveActivity.this,
+//                            "Image saved to gallery!",
+//                            Toast.LENGTH_SHORT).show();
+//
+//                    File cacheDir = new File(getCacheDir(), "images");
+//                    File[] files = cacheDir.listFiles();
+//                    for (File f : files) {
+//                        // maybe if older than X time, delete
+//                        if(f.getName().startsWith("temp_image_")) {
+//                            f.delete();
+//                        }
+//                    }
+//
+//                });
+//
+//                // Make the image visible in the gallery
+//                Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+//                Uri contentUri = Uri.fromFile(file);
+//                mediaScanIntent.setData(contentUri);
+//                this.sendBroadcast(mediaScanIntent);
+//
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                runOnUiThread(() -> {
+//                    Toast.makeText(SaveActivity.this,
+//                            "Error saving image: " + e.getMessage(),
+//                            Toast.LENGTH_SHORT).show();
+//                });
+//            }
+//        }
+//    }
+private void saveImageFromUri(Uri sourceUri) {
+    if (sourceUri == null) {
+        Toast.makeText(this, "Source Uri is null", Toast.LENGTH_SHORT).show();
+        return;
+    }
 
-        // Android 10 and above
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.Images.Media.DISPLAY_NAME,
-                    "temp_image_" + System.currentTimeMillis() + ".jpg");
-            values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
-            values.put(MediaStore.Images.Media.RELATIVE_PATH,
-                    Environment.DIRECTORY_PICTURES + "/SketchX");
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Images.Media.DISPLAY_NAME, "temp_image_" + System.currentTimeMillis() + ".jpg");
+        values.put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg");
+        values.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/SketchX");
 
-            Uri uri = getContentResolver().insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
+        Uri savedUri = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values);
 
-            if (uri != null) {
-                try (OutputStream outputStream = getContentResolver().openOutputStream(uri);
-                     InputStream inputStream  = getContentResolver().openInputStream(sourceUri)) {
-
-                    if (inputStream == null) {
-                        throw new IOException("Failed to open input stream from sourceUri");
-                    }
-
-                    byte[] buffer = new byte[8192];
-                    int len;
-                    while ((len = inputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, len);
-                    }
-                    outputStream.flush();
-
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(
-                                    SaveActivity.this,
-                                    "Image saved to gallery!",
-                                    Toast.LENGTH_SHORT
-                            ).show();
-
-                            File cacheDir = new File(getCacheDir(), "images");
-                            File[] files = cacheDir.listFiles();
-                            for (File f : files) {
-                                // maybe if older than X time, delete
-                                if(f.getName().startsWith("temp_image_")) {
-                                    f.delete();
-                                }
-                            }
-
-                        }
-                    });
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    runOnUiThread(() -> Toast.makeText(
-                            SaveActivity.this,
-                            "Error saving image: " + e.getMessage(),
-                            Toast.LENGTH_SHORT
-                    ).show());
-                }
-            } else {
-                runOnUiThread(() -> Toast.makeText(
-                        SaveActivity.this,
-                        "Failed to create media store entry.",
-                        Toast.LENGTH_SHORT
-                ).show());
-            }
-
-        } else {
-            // Android 9 (Pie) and below: Save to external storage public directory
-            String directoryPath = Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_PICTURES) + "/SketchX";
-            File directory = new File(directoryPath);
-            if (!directory.exists()) {
-                directory.mkdirs();
-            }
-
-            String fileName = "temp_image_" + System.currentTimeMillis() + ".jpg";
-            File file = new File(directory, fileName);
-
-            try (FileOutputStream outputStream = new FileOutputStream(file);
-                 InputStream inputStream = getContentResolver().openInputStream(sourceUri)) {
-
-                if (inputStream == null) {
-                    throw new IOException("Failed to open input stream from sourceUri");
-                }
+        if (savedUri != null) {
+            try (OutputStream out = getContentResolver().openOutputStream(savedUri);
+                 InputStream in = getContentResolver().openInputStream(sourceUri)) {
 
                 byte[] buffer = new byte[8192];
                 int len;
-                while ((len = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, len);
-                }
-                outputStream.flush();
+                while ((len = in.read(buffer)) != -1) out.write(buffer, 0, len);
+                out.flush();
 
-                runOnUiThread(() -> {
-                    Toast.makeText(SaveActivity.this,
-                            "Image saved to gallery!",
-                            Toast.LENGTH_SHORT).show();
+                // 🔑 Use the newly saved MediaStore URI for sharing
+                shareImage = savedUri.toString();
 
-                    File cacheDir = new File(getCacheDir(), "images");
-                    File[] files = cacheDir.listFiles();
+                // (Optional) now you can delete your cache file(s)
+                File cacheDir = new File(getCacheDir(), "images");
+                File[] files = cacheDir.listFiles();
+                if (files != null) {
                     for (File f : files) {
-                        // maybe if older than X time, delete
-                        if(f.getName().startsWith("temp_image_")) {
-                            f.delete();
-                        }
+                        if (f.getName().startsWith("temp_image_")) f.delete();
                     }
+                }
 
-                });
-
-                // Make the image visible in the gallery
-                Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-                Uri contentUri = Uri.fromFile(file);
-                mediaScanIntent.setData(contentUri);
-                this.sendBroadcast(mediaScanIntent);
+                Toast.makeText(this, "Image saved to gallery!", Toast.LENGTH_SHORT).show();
 
             } catch (IOException e) {
-                e.printStackTrace();
-                runOnUiThread(() -> {
-                    Toast.makeText(SaveActivity.this,
-                            "Error saving image: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
-                });
+                Toast.makeText(this, "Error saving image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             }
+        } else {
+            Toast.makeText(this, "Failed to create media store entry.", Toast.LENGTH_SHORT).show();
+        }
+
+    } else {
+        // Android 9 and below
+        String dirPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/SketchX";
+        File directory = new File(dirPath);
+        if (!directory.exists()) directory.mkdirs();
+
+        File file = new File(directory, "temp_image_" + System.currentTimeMillis() + ".jpg");
+
+        try (FileOutputStream out = new FileOutputStream(file);
+             InputStream in = getContentResolver().openInputStream(sourceUri)) {
+
+            byte[] buffer = new byte[8192];
+            int len;
+            while ((len = in.read(buffer)) != -1) out.write(buffer, 0, len);
+            out.flush();
+
+            // Make visible in gallery
+            Intent scan = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            scan.setData(Uri.fromFile(file));
+            sendBroadcast(scan);
+
+            // 🔑 Get a FileProvider URI for sharing (avoid FileUriExposedException)
+            Uri fpUri = androidx.core.content.FileProvider.getUriForFile(
+                    this, getPackageName() + ".provider", file);
+            shareImage = fpUri.toString();
+
+            // (Optional) cleanup cache now
+            File cacheDir = new File(getCacheDir(), "images");
+            File[] files = cacheDir.listFiles();
+            if (files != null) {
+                for (File f : files) {
+                    if (f.getName().startsWith("temp_image_")) f.delete();
+                }
+            }
+
+            Toast.makeText(this, "Image saved to gallery!", Toast.LENGTH_SHORT).show();
+
+        } catch (IOException e) {
+            Toast.makeText(this, "Error saving image: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+}
 
 
     //    private void saveBitmap(Bitmap bitmap) {

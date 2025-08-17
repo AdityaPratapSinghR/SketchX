@@ -5,20 +5,28 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.exifinterface.media.ExifInterface;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -28,6 +36,7 @@ import com.infinityplus.photo.pencil.sketch.maker.image.sketch.phototosketch.ada
 import com.infinityplus.photo.pencil.sketch.maker.image.sketch.phototosketch.model.ConversionItem;
 
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -65,7 +74,13 @@ public class ImageEditorActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_image_editor);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.image_editor), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
         sharedApp = getSharedPreferences(Constant.APP_NAME, MODE_PRIVATE);
         editor = sharedApp.edit();
         //System.loadLibrary("tensorflow_inference");
@@ -81,7 +96,7 @@ public class ImageEditorActivity extends AppCompatActivity implements
             if (imageBytes != null) {
                 Bitmap bmp = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
                 // Set this as the original (for filter processing)
-                originalBitmap = rotateBitmap(bmp, 90);
+                originalBitmap = bmp;
                 ;
                 // Create a working copy
                 workingBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true);
@@ -101,12 +116,22 @@ public class ImageEditorActivity extends AppCompatActivity implements
                 }
                 Uri imageUri = Uri.parse(uriString);
                 // Use your custom method to load the Uri into a Bitmap
-                Bitmap bmp = loadImageFromUri(imageUri);
+               // Bitmap bmp = loadImageFromUri(imageUri);
+                Bitmap bmp = null;
+                try {
+                    bmp = getCorrectlyOrientedBitmap(ImageEditorActivity.this,imageUri);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 if (bmp != null) {
                     originalBitmap = bmp;
                     workingBitmap = originalBitmap.copy(Bitmap.Config.ARGB_8888, true);
                     // 1) Downsample or get the original bitmap
-                    scaledBitmap = decodeSampledBitmap(imageData, 900, 600);
+                    try {
+                        scaledBitmap = decodeSampledBitmap(ImageEditorActivity.this,imageData, 900, 600);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                     // workingBitmap = scaledBitmap;
                     imagePreview.setImageBitmap(workingBitmap);
 
@@ -272,6 +297,72 @@ public class ImageEditorActivity extends AppCompatActivity implements
 
     }
 
+    public static Bitmap getCorrectlyOrientedBitmap(Context context, Uri uri) throws IOException {
+        // 1) Decode the bitmap
+        InputStream inputStream = context.getContentResolver().openInputStream(uri);
+        Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+        inputStream.close();
+
+        // 2) Read EXIF orientation from the file (if scheme is "file://", or if you can get a real path).
+        // If your Uri is "content://" you may need to convert to real path first or skip EXIF if not accessible.
+        String path = getRealPathFromUri(context, uri);
+        if (path == null) {
+            // If we can't get a file path, we can't read EXIF. Return as-is or do your fallback rotation.
+            return bitmap;
+        }
+
+        ExifInterface exif = new ExifInterface(path);
+        int orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+        int rotationInDegrees = exifToDegrees(orientation);
+
+        // 3) Rotate the bitmap if needed
+        return rotateBitmap(bitmap, rotationInDegrees);
+    }
+    public static String getRealPathFromUri(Context context, Uri uri) {
+        String result = null;
+
+        // 1) Handle the special case where the scheme is "file://"
+        if (uri.getScheme().equals("file")) {
+            return uri.getPath();
+        }
+
+        // 2) Otherwise, handle "content://" URIs
+        if (uri.getScheme().equals("content")) {
+            Cursor cursor = null;
+            try {
+                String[] projection = { MediaStore.Images.Media.DATA };
+                cursor = context.getContentResolver().query(uri, projection, null, null, null);
+                if (cursor != null && cursor.moveToFirst()) {
+                    int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+                    result = cursor.getString(columnIndex);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (cursor != null) {
+                    cursor.close();
+                }
+            }
+        }
+        return result;
+    }
+
+
+    private static int exifToDegrees(int exifOrientation) {
+        if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_90) { return 90; }
+        else if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_180) { return 180; }
+        else if (exifOrientation == ExifInterface.ORIENTATION_ROTATE_270) { return 270; }
+        return 0;
+    }
+
+    public static Bitmap rotateBitmap(Bitmap source, float angle) {
+        if (angle == 0) return source; // No rotation needed
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+
+
     private Bitmap loadImageFromUri(Uri imageUri) {
         try (InputStream inputStream = getContentResolver().openInputStream(imageUri)) {
             return BitmapFactory.decodeStream(inputStream);
@@ -403,11 +494,18 @@ public class ImageEditorActivity extends AppCompatActivity implements
         if (originalBitmap == null) {
             return;
         }
-
         ProgressDialog progressDialog = new ProgressDialog(ImageEditorActivity.this);
         progressDialog.setCancelable(false);
         progressDialog.setTitle("Applying!");
-        progressDialog.show();
+        if (!ImageEditorActivity.this.isFinishing()){
+            try {
+                progressDialog.show();
+            }catch (WindowManager.BadTokenException e){
+                e.printStackTrace();
+               // Toast.makeText(this, "", Toast.LENGTH_SHORT).show();
+            }
+
+        }
         ExecutorService executor = Executors.newSingleThreadExecutor();
         executor.submit(() -> {
 
@@ -448,31 +546,62 @@ public class ImageEditorActivity extends AppCompatActivity implements
 //            imagePreview.setImageBitmap(workingBitmap);
     }
 
-    public static Bitmap rotateBitmap(Bitmap source, float angle) {
-        Matrix matrix = new Matrix();
-        matrix.postRotate(angle);
-        return Bitmap.createBitmap(
-                source, 0, 0, source.getWidth(), source.getHeight(),
-                matrix, true
-        );
-    }
+//    public static Bitmap rotateBitmap(Bitmap source, float angle) {
+//        Matrix matrix = new Matrix();
+//        matrix.postRotate(angle);
+//        return Bitmap.createBitmap(
+//                source, 0, 0, source.getWidth(), source.getHeight(),
+//                matrix, true
+//        );
+//    }
 
     /**
      * Decode and downsample an image from a Uri (or file path).
      */
-    public static Bitmap decodeSampledBitmap(byte[] data, int reqWidth, int reqHeight) {
-        // First decode with inJustDecodeBounds=true to check dimensions
+//    public static Bitmap decodeSampledBitmap(byte[] data, int reqWidth, int reqHeight) {
+//        // First decode with inJustDecodeBounds=true to check dimensions
+//        BitmapFactory.Options options = new BitmapFactory.Options();
+//        options.inJustDecodeBounds = true;
+//        BitmapFactory.decodeByteArray(data, 0, data.length, options);
+//
+//        // Calculate inSampleSize
+//        options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
+//
+//        // Decode bitmap with inSampleSize set
+//        options.inJustDecodeBounds = false;
+//        return BitmapFactory.decodeByteArray(data, 0, data.length, options);
+//    }
+    public static Bitmap decodeSampledBitmap(Context context, byte[] data, int reqWidth, int reqHeight) throws IOException {
+        // 1) Read EXIF from the byte[] data
+        int orientation = readExifOrientation(data);
+
+        // 2) Decode with inJustDecodeBounds=true to find raw dimensions
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
         BitmapFactory.decodeByteArray(data, 0, data.length, options);
 
-        // Calculate inSampleSize
+        // 3) Calculate inSampleSize
         options.inSampleSize = calculateInSampleSize(options, reqWidth, reqHeight);
-
-        // Decode bitmap with inSampleSize set
         options.inJustDecodeBounds = false;
-        return BitmapFactory.decodeByteArray(data, 0, data.length, options);
+
+        // 4) Decode scaled bitmap
+        Bitmap decoded = BitmapFactory.decodeByteArray(data, 0, data.length, options);
+
+        // 5) Rotate if needed
+        int angle = exifToDegrees(orientation);
+        if (angle != 0) {
+            decoded = rotateBitmap(decoded, angle);
+        }
+
+        return decoded;
     }
+    private static int readExifOrientation(byte[] jpegData) throws IOException {
+        // Requires API 24+ for memory-based ExifInterface constructor
+        InputStream is = new ByteArrayInputStream(jpegData);
+        ExifInterface exif = new ExifInterface(is);
+        return exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+    }
+
 
     public static int calculateInSampleSize(
             BitmapFactory.Options options, int reqWidth, int reqHeight) {
